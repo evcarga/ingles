@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Abulingo: aprende inglés de forma efectiva con ciencia del aprendizaje (repetición espaciada y recuerdo activo) y un entorno positivo diseñado con psicología del color.">
+    <title>Abulingo - Aprende Inglés en un Entorno Positivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Work+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" href="icono.png" type="image/x-icon">
+    <style>
+        body { font-family: 'Work Sans', sans-serif; background-color: #E6F0FF; color: #212121; scroll-behavior: smooth; }
+        .font-heading { font-family: 'Space Grotesk', sans-serif; color: #0D47A1; }
+        .btn-primary { background-color: #FF7A00; color: #FFFFFF; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(255, 122, 0, 0.3); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255, 122, 0, 0.4); }
+        .card-style { background: #FFFFFF; border: 1px solid #dbeafe; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }
+        .card-style:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.07); }
+        .wave-divider { position: absolute; bottom: -1px; left: 0; width: 100%; overflow: hidden; line-height: 0; transform: rotate(180deg); }
+        .wave-divider svg { position: relative; display: block; width: calc(100% + 1.3px); height: 150px; }
+        .wave-divider .shape-fill { fill: #E6F0FF; }
+        .animate-on-scroll { transform: translateY(20px); opacity: 0; transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .animate-on-scroll.is-visible { transform: translateY(0); opacity: 1; }
+        .highlight-yellow { background-color: #FFEB3B; padding: 0 0.25rem; border-radius: 0.2rem; color: #333; }
+        .text-feedback-success { color: #4CAF50; }
+        .text-feedback-error { color: #D32F2F; }
+        .input-field { background-color: #F8FAFC; border: 1px solid #CFD8DC; border-radius: 0.5rem; padding: 0.75rem; color: #374151; }
+        .input-field:focus { outline: none; border-color: #FF7A00; box-shadow: 0 0 0 2px rgba(255, 122, 0, 0.2); }
+        .pin-field { letter-spacing: 0.5em; text-align: center; font-size: 1.25rem; }
+        .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <header class="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-lg py-4 z-50 border-b border-blue-100">
+        <div class="container mx-auto flex justify-between items-center px-6">
+            <a href="#" class="text-2xl sm:text-3xl font-bold font-heading">Abulingo<span style="color: #FF7A00;">.</span></a>
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="#features" class="text-slate-600 hover:text-[#0D47A1] transition font-semibold">Características</a>
+                <a href="#ciencia" class="text-slate-600 hover:text-[#0D47A1] transition font-semibold">Método</a>
+                <a href="#pricing" class="text-slate-600 hover:text-[#0D47A1] transition font-semibold">Planes</a>
+                <a href="#faq" class="text-slate-600 hover:text-[#0D47A1] transition font-semibold">FAQ</a>
+                <div id="logged-out-nav" class="flex items-center space-x-4">
+                    <button id="desktop-login-btn" class="auth-btn-login text-slate-600 hover:text-[#0D47A1] transition font-semibold">Iniciar Sesión</button>
+                    <button id="desktop-signup-btn" class="auth-btn-signup btn-primary px-5 py-2 rounded-full text-sm font-bold">Registrarse</button>
+                </div>
+                <div id="logged-in-nav" class="hidden items-center space-x-4">
+                    <span id="user-name" class="text-slate-500 text-sm font-semibold"></span>
+                    <button id="logout-btn" class="bg-red-100 text-[#D32F2F] font-bold px-5 py-2 rounded-full text-sm hover:bg-red-200 transform transition">Salir</button>
+                </div>
+            </nav>
+            <div class="flex items-center gap-2 md:hidden">
+                <div id="mobile-auth-buttons" class="flex items-center gap-2">
+                    <button id="mobile-login-btn" class="auth-btn-login text-slate-600 hover:text-[#0D47A1] transition font-semibold text-sm whitespace-nowrap">Entrar</button>
+                    <button id="mobile-signup-btn" class="auth-btn-signup btn-primary px-3 py-2 rounded-full text-xs font-bold whitespace-nowrap">Registrarse</button>
+                </div>
+                <div id="mobile-user-badge" class="hidden items-center">
+                    <button id="mobile-logout-top" class="bg-red-100 text-[#D32F2F] font-bold px-3 py-2 rounded-full text-xs">Salir</button>
+                </div>
+                <button id="menu-button" class="text-[#0D47A1]" aria-label="Abrir menú" aria-expanded="false">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="mobile-menu" class="hidden md:hidden fixed top-20 right-4 w-56 bg-white/90 backdrop-blur-lg p-4 rounded-lg shadow-xl z-40 space-y-4 border border-blue-100">
+    </div>
+
+    <section class="bg-white relative pt-32 pb-40 text-center overflow-hidden">
+        <div class="container mx-auto px-6 relative z-10">
+            <h1 class="text-5xl md:text-7xl font-bold font-heading leading-tight mb-4 animate-on-scroll">
+                Aprender Inglés te da <br> un Nuevo <span style="color: #FF7A00;">Superpoder</span>.
+            </h1>
+            <p class="text-xl text-slate-600 max-w-3xl mx-auto mb-8 animate-on-scroll" style="transition-delay: 0.2s;">
+                Combinamos la <span class="highlight-yellow">ciencia del aprendizaje</span> —como la repetición espaciada— con la <span class="highlight-yellow">psicología del color</span> para que memorices de forma efectiva y mantengas la concentración y la motivación.
+            </p>
+            <div class="animate-on-scroll" style="transition-delay: 0.4s;">
+                <button id="hero-signup-btn" class="auth-btn-signup btn-primary inline-block px-10 py-4 rounded-full text-lg font-bold">
+                    Empieza tu Aventura Gratis
+                </button>
+            </div>
+        </div>
+        <div class="wave-divider">
+            <svg viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" class="shape-fill"></path></svg>
+        </div>
+    </section>
+
+    <section id="features" class="py-24">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-4xl font-bold font-heading mb-2 animate-on-scroll">¿Qué Hace a Abulingo <span style="color: #FF7A00;">Especial</span>?</h2>
+            <p class="text-slate-600 mb-12 max-w-2xl mx-auto animate-on-scroll" style="transition-delay: 0.2s;">No solo aprendes, vives el idioma de forma positiva.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="card-style p-8 rounded-2xl animate-on-scroll">
+                    <div class="text-5xl mb-4">🚀</div>
+                    <h3 class="text-2xl font-bold font-heading mb-2">Misiones Diarias</h3>
+                    <p class="text-slate-600">Completa desafíos prácticos que te hacen usar el inglés en situaciones reales. ¡Sube de nivel cada día!</p>
+                </div>
+                <div class="card-style p-8 rounded-2xl animate-on-scroll" style="transition-delay: 0.2s;">
+                    <div class="text-5xl mb-4">🤖</div>
+                    <h3 class="text-2xl font-bold font-heading mb-2">Tutor con IA</h3>
+                    <p class="text-slate-600">Practica conversaciones 24/7. Nuestro tutor inteligente corrige tu pronunciación y gramática al instante.</p>
+                </div>
+                <div class="card-style p-8 rounded-2xl animate-on-scroll" style="transition-delay: 0.4s;">
+                    <div class="text-5xl mb-4">🌍</div>
+                    <h3 class="text-2xl font-bold font-heading mb-2">Club de Conversación</h3>
+                    <p class="text-slate-600">Únete a videollamadas grupales con estudiantes de todo el mundo y pierde el miedo a hablar.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="py-24 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold font-heading">Un Método Diseñado para el <span style="color: #FF7A00;">Mundo Real</span></h2>
+                <p class="text-slate-600 mt-2 max-w-2xl mx-auto animate-on-scroll" style="transition-delay: 0.2s;">Olvídate de memorizar a la fuerza. Empieza a comunicar.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="animate-on-scroll">
+                    <div class="p-6 bg-[#E6F0FF] rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4 text-4xl">🎬</div>
+                    <h3 class="text-xl font-bold font-heading mb-2">Lecciones Interactivas</h3>
+                    <p class="text-slate-600">Videos cortos y ejercicios gamificados que te enganchan desde el primer minuto.</p>
+                </div>
+                <div class="animate-on-scroll" style="transition-delay: 0.2s;">
+                    <div class="p-6 bg-[#E6F0FF] rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4 text-4xl">💬</div>
+                    <h3 class="text-xl font-bold font-heading mb-2">Práctica Real</h3>
+                    <p class="text-slate-600">Habla con nuestro tutor IA o únete a conversaciones con tutores. La fluidez se logra hablando.</p>
+                </div>
+                <div class="animate-on-scroll" style="transition-delay: 0.4s;">
+                    <div class="p-6 bg-[#E6F0FF] rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4 text-4xl">🎵</div>
+                    <h3 class="text-xl font-bold font-heading mb-2">Contenido Inmersivo</h3>
+                    <p class="text-slate-600">Aprende con canciones, fragmentos de películas y noticias. El inglés que se usa de verdad.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="ciencia" class="py-24">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-4xl font-bold font-heading mb-2 animate-on-scroll">Aprende con la <span style="color: #FF7A00;">Ciencia del Aprendizaje</span></h2>
+            <p class="text-slate-600 mb-12 max-w-2xl mx-auto animate-on-scroll" style="transition-delay: 0.2s;">Usamos métodos respaldados por la neurociencia para que recuerdes más y olvides menos, sin esfuerzo desperdiciado.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="card-style p-8 rounded-2xl animate-on-scroll">
+                    <div class="text-5xl mb-4">🔁</div>
+                    <h3 class="text-2xl font-bold font-heading mb-2">Repetición Espaciada</h3>
+                    <p class="text-slate-600">Nuestro sistema calcula el momento exacto para repasar cada palabra, justo antes de que la olvides. Así fijas el vocabulario en tu memoria a largo plazo con el mínimo esfuerzo.</p>
+                </div>
+                <div class="card-style p-8 rounded-2xl animate-on-scroll" style="transition-delay: 0.2s;">
+                    <div class="text-5xl mb-4">🧠</div>
+                    <h3 class="text-2xl font-bold font-heading mb-2">Recuerdo Activo</h3>
+                    <p class="text-slate-600">En vez de solo leer, te retamos a recordar. Ese "esfuerzo de recuperación" fortalece tus conexiones neuronales y convierte lo aprendido en conocimiento permanente.</p>
+                </div>
+                <div class="card-style p-8 rounded-2xl animate-on-scroll" style="transition-delay: 0.4s;">
+                    <div class="text-5xl mb-4">🎨</div>
+                    <h3 class="text-2xl font-bold font-heading mb-2">Psicología del Color</h3>
+                    <p class="text-slate-600">Cada color de la plataforma está elegido para maximizar tu concentración y motivación, creando un entorno positivo al que dan ganas de volver cada día.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="testimonials" class="py-24 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold font-heading mb-2 animate-on-scroll">Transformamos Carreras y <span style="color: #FF7A00;">Vidas</span></h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="card-style p-8 rounded-2xl animate-on-scroll">
+                    <p class="text-slate-700 mb-4">"Estaba preocupada por mi futuro laboral y el inglés era mi debilidad. En 3 meses, Abulingo me dio la seguridad para hablar en público en inglés."</p>
+                    <div class="flex items-center">
+                        <img src="https://picsum.photos/seed/user1/40/40.jpg" alt="Foto de Laura Vega" width="40" height="40" loading="lazy" class="w-10 h-10 rounded-full mr-4">
+                        <div>
+                            <p class="font-bold text-[#0D47A1]">Laura Vega</p>
+                            <p class="text-sm text-slate-500">Estudiante Universitaria</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-style p-8 rounded-2xl animate-on-scroll" style="transition-delay: 0.2s;">
+                    <p class="text-slate-700 mb-4">"Siempre quise viajar sin miedo a no poder comunicarme. Gracias a Abulingo, mi viaje a Nueva York fue un sueño hecho realidad."</p>
+                    <div class="flex items-center">
+                        <img src="https://picsum.photos/seed/user2/40/40.jpg" alt="Foto de Carlos Morales" width="40" height="40" loading="lazy" class="w-10 h-10 rounded-full mr-4">
+                        <div>
+                            <p class="font-bold text-[#0D47A1]">Carlos Morales</p>
+                            <p class="text-sm text-slate-500">Viajero Apasionado</p>
+                        </div>
+                    </div>
+                </div>
+                 <div class="card-style p-8 rounded-2xl md:col-span-2 lg:col-span-1 animate-on-scroll" style="transition-delay: 0.4s;">
+                    <p class="text-slate-700 mb-4">"Como desarrollador, el inglés es esencial. La IA para practicar conversaciones técnicas es simplemente brillante."</p>
+                    <div class="flex items-center">
+                        <img src="https://picsum.photos/seed/user3/40/40.jpg" alt="Foto de Sofía Delgado" width="40" height="40" loading="lazy" class="w-10 h-10 rounded-full mr-4">
+                        <div>
+                            <p class="font-bold text-[#0D47A1]">Sofía Delgado</p>
+                            <p class="text-sm text-slate-500">Desarrolladora de Software</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+     <section id="pricing" class="py-24">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-4xl font-bold font-heading mb-2 animate-on-scroll">Planes Flexibles para <span style="color: #FF7A00;">Todos</span></h2>
+            <p class="text-slate-600 mb-12 max-w-2xl mx-auto animate-on-scroll" style="transition-delay: 0.2s;">Empieza gratis y mejora tu plan cuando estés listo.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <div class="card-style p-8 rounded-2xl animate-on-scroll">
+                    <h3 class="text-2xl font-bold font-heading">Gratis</h3>
+                    <p class="text-slate-500 mb-6">Para empezar a explorar</p>
+                    <p class="text-5xl font-bold font-heading mb-6">$0<span class="text-lg text-slate-500">/mes</span></p>
+                    <ul class="text-left space-y-2 mb-8 text-slate-700">
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Acceso a lecciones para principiantes</li>
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Nivel A1 gratis</li>
+                    </ul>
+                    <button class="auth-btn-signup w-full py-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold transition">Empieza Ahora</button>
+                </div>
+                <div class="card-style p-8 rounded-2xl animate-on-scroll border-2 border-[#FF7A00] relative" style="transition-delay: 0.2s;">
+                     <div class="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-[#FF7A00] text-white text-xs font-bold px-3 py-1 rounded-full">MÁS POPULAR</div>
+                    <h3 class="text-2xl font-bold font-heading">Plus</h3>
+                    <p class="text-slate-500 mb-1">Para hablar con fluidez</p>
+                    <p class="text-slate-500 mb-6">Pago anual</p>
+                    <p class="text-5xl font-bold font-heading mb-6">$5<span class="text-lg text-slate-500">/mes</span></p>
+                    <ul class="text-left space-y-2 mb-8 text-slate-700">
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Todas las lecciones y niveles</li>
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Misiones Diarias Ilimitadas</li>
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Tutor con IA Ilimitado</li>
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Acceso al Club de Conversación</li>
+                    </ul>
+                    <a href="https://wa.me/573163748711" target="_blank" rel="noopener noreferrer"><button class="w-full py-3 rounded-lg btn-primary font-bold">Elegir plan plus</button></a>
+                </div>
+                <div class="card-style p-8 rounded-2xl animate-on-scroll" style="transition-delay: 0.4s;">
+                    <h3 class="text-2xl font-bold font-heading">Pro</h3>
+                    <p class="text-slate-500 mb-6">Para dominar el idioma</p>
+                    <p class="text-5xl font-bold font-heading mb-6">$20<span class="text-lg text-slate-500">/mes</span></p>
+                    <ul class="text-left space-y-2 mb-8 text-slate-700">
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Todo lo del plan Plus</li>
+                        <li class="flex items-center"><span class="text-[#4CAF50] mr-2 font-bold">✔</span> Sesiones 1 a 1 con tutores</li>
+                    </ul>
+                    <a href="https://wa.me/573163748711" target="_blank" rel="noopener noreferrer"><button class="w-full py-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold transition">Contactar</button></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" class="py-24 bg-white">
+        <div class="container mx-auto px-6 max-w-3xl">
+            <h2 class="text-4xl font-bold font-heading mb-8 text-center animate-on-scroll">Preguntas Frecuentes</h2>
+            <div class="space-y-4 animate-on-scroll">
+                <div class="card-style rounded-lg p-1">
+                    <div class="faq-question flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-lg font-bold font-heading">¿Abulingo es para principiantes?</h3>
+                        <span class="text-2xl text-[#FF7A00] transform transition-transform faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer px-4 pb-4 text-slate-600">
+                        <p>¡Absolutamente! Nuestro curso para principiantes te lleva desde "Hello" hasta tus primeras conversaciones con una base sólida. No necesitas ningún conocimiento previo.</p>
+                    </div>
+                </div>
+                <div class="card-style rounded-lg p-1">
+                    <div class="faq-question flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-lg font-bold font-heading">¿Por qué memorizo más rápido con Abulingo?</h3>
+                        <span class="text-2xl text-[#FF7A00] transform transition-transform faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer px-4 pb-4 text-slate-600">
+                        <p>Porque aplicamos la ciencia del aprendizaje: la repetición espaciada te muestra cada palabra justo antes de que la olvides, y el recuerdo activo te reta a recuperarla de memoria. Juntas, estas técnicas fijan el vocabulario en tu memoria a largo plazo con mucho menos esfuerzo.</p>
+                    </div>
+                </div>
+                <div class="card-style rounded-lg p-1">
+                     <div class="faq-question flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-lg font-bold font-heading">¿Puedo cancelar mi suscripción?</h3>
+                        <span class="text-2xl text-[#FF7A00] transform transition-transform faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer px-4 pb-4 text-slate-600">
+                        <p>Sí, puedes cancelar tu suscripción a los planes de pago en cualquier momento desde tu panel de control, sin preguntas ni complicaciones.</p>
+                    </div>
+                </div>
+                 <div class="card-style rounded-lg p-1">
+                     <div class="faq-question flex justify-between items-center p-4 cursor-pointer">
+                        <h3 class="text-lg font-bold font-heading">¿Qué es el Club de Conversación?</h3>
+                        <span class="text-2xl text-[#FF7A00] transform transition-transform faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer px-4 pb-4 text-slate-600">
+                        <p>Son videollamadas grupales moderadas por un tutor donde puedes practicar tu inglés hablado en un ambiente relajado y de apoyo con otros estudiantes de tu nivel.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-white border-t border-blue-100 py-12">
+        <div class="container mx-auto px-6 text-center text-slate-500">
+            <p>&copy; 2025 Abulingo. Diseñado para un aprendizaje positivo y efectivo.</p>
+        </div>
+    </footer>
+
+    <div id="login-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <button class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-800 text-2xl" aria-label="Cerrar">&times;</button>
+            <h2 class="text-2xl font-bold font-heading mb-6 text-center">Iniciar Sesión</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="login-email" class="block text-sm font-medium text-slate-600 mb-1">Correo Electrónico</label>
+                    <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email" class="w-full input-field" required>
+                </div>
+                <div class="mb-6">
+                    <label for="login-pin" class="block text-sm font-medium text-slate-600 mb-1">PIN (4 dígitos)</label>
+                    <input type="password" id="login-pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" autocomplete="current-password" placeholder="••••" class="w-full input-field pin-field" required>
+                </div>
+                <button type="submit" id="login-submit-btn" class="w-full btn-primary font-bold py-3 rounded-lg">Entrar</button>
+            </form>
+            <div id="login-error" class="text-sm mt-4 text-center h-4 text-feedback-error"></div>
+        </div>
+    </div>
+
+    <div id="signup-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <button class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-800 text-2xl" aria-label="Cerrar">&times;</button>
+            <h2 class="text-2xl font-bold font-heading mb-6 text-center">Crea tu Cuenta</h2>
+            <form id="signup-form" class="space-y-4">
+                <div>
+                    <label for="signup-name" class="block text-sm font-medium text-slate-600 mb-1">Nombre Completo</label>
+                    <input type="text" id="signup-name" autocomplete="name" class="w-full input-field" required>
+                </div>
+                <div>
+                    <label for="signup-phone" class="block text-sm font-medium text-slate-600 mb-1">Número Celular</label>
+                    <input type="tel" id="signup-phone" placeholder="Ej: 3123456789" autocomplete="tel" class="w-full input-field" required>
+                </div>
+                <div>
+                    <label for="signup-group" class="block text-sm font-medium text-slate-600 mb-1">Grupo de inglés</label>
+                    <select id="signup-group" class="w-full input-field" required>
+                        <option value="No tengo">No tengo</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="signup-email" class="block text-sm font-medium text-slate-600 mb-1">Correo Electrónico</label>
+                    <input type="email" id="signup-email" autocomplete="email" class="w-full input-field" required>
+                </div>
+                <div>
+                    <label for="signup-pin" class="block text-sm font-medium text-slate-600 mb-1">Crea tu PIN (4 dígitos)</label>
+                    <input type="password" id="signup-pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" autocomplete="new-password" placeholder="••••" class="w-full input-field pin-field" required>
+                    <p class="text-xs text-slate-400 mt-1">Usarás este PIN de 4 dígitos para entrar. Sencillo de recordar.</p>
+                </div>
+                <button type="submit" id="signup-submit-btn" class="w-full btn-primary font-bold py-3 rounded-lg !mt-6">Crear Cuenta</button>
+            </form>
+            <div id="signup-message" class="text-sm mt-4 text-center h-4"></div>
+        </div>
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const supabaseUrl = 'https://eylwewhqeaaqkgcxhgyv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5bHdld2hxZWFhcWtnY3hoZ3l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMzAxODgsImV4cCI6MjA5OTkwNjE4OH0.Ji8huj-ny2VcMT5UQSjOuwUKz4k23quNS0fLk-gZr7A';
+
+        // --- Configuración del PIN ---
+        // El usuario elige un PIN de 4 dígitos. Internamente se le añaden 2 dígitos
+        // fijos ("99") para formar la contraseña real de 6 caracteres que usa Supabase.
+        // Ej.: PIN 3452  ->  contraseña 345299
+        const PIN_SUFFIX = '99';
+        const isValidPin = (pin) => /^[0-9]{4}$/.test(pin);
+        const buildPassword = (pin) => `${pin}${PIN_SUFFIX}`;
+
+        let supabase = null;
+        if (supabaseUrl && supabaseKey) {
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        } else {
+            console.error('ADVERTENCIA: Las credenciales de Supabase no están configuradas.');
+        }
+
+        const loginModal = document.getElementById('login-modal');
+        const signupModal = document.getElementById('signup-modal');
+        const loggedOutNav = document.getElementById('logged-out-nav');
+        const loggedInNav = document.getElementById('logged-in-nav');
+        const userNameSpan = document.getElementById('user-name');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuButton = document.getElementById('menu-button');
+        const mobileAuthButtons = document.getElementById('mobile-auth-buttons');
+        const mobileUserBadge = document.getElementById('mobile-user-badge');
+
+        const openModal = (modal) => modal.classList.remove('hidden');
+        const closeModal = (modal) => modal.classList.add('hidden');
+        document.querySelectorAll('.auth-btn-login').forEach(btn => btn.addEventListener('click', () => openModal(loginModal)));
+        document.querySelectorAll('.auth-btn-signup').forEach(btn => btn.addEventListener('click', () => openModal(signupModal)));
+        document.querySelectorAll('.close-modal-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                closeModal(loginModal);
+                closeModal(signupModal);
+            });
+        });
+        // Cerrar el modal al hacer clic fuera de la tarjeta
+        [loginModal, signupModal].forEach(modal => {
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); });
+        });
+
+        // Registra eventos de analítica en Supabase sin interrumpir la UX si falla.
+        const trackEvent = async (table, payload) => {
+            if (!supabase) return;
+            try {
+                const { error } = await supabase.from(table).insert(payload);
+                if (error) console.warn(`No se pudo registrar evento en "${table}":`, error.message);
+            } catch (err) {
+                console.warn(`No se pudo registrar evento en "${table}":`, err);
+            }
+        };
+
+        // Detecta el tipo de dispositivo a partir del ancho de pantalla y el user agent.
+        const getDeviceType = () => {
+            const ua = navigator.userAgent || '';
+            const isTablet = /iPad|Tablet|(Android(?!.*Mobile))/i.test(ua) || (window.innerWidth >= 768 && window.innerWidth <= 1024 && 'ontouchstart' in window);
+            const isMobile = !isTablet && /Mobi|Android|iPhone|iPod|Windows Phone|BlackBerry/i.test(ua);
+            if (isMobile) return 'mobile';
+            if (isTablet) return 'tablet';
+            return 'desktop';
+        };
+
+        // Registra la visita a la página (una vez por carga).
+        if (supabase) {
+            trackEvent('page_visits', {
+                path: window.location.pathname,
+                referrer: document.referrer || null,
+                user_agent: navigator.userAgent,
+                device_type: getDeviceType(),
+                screen_width: window.innerWidth,
+                screen_height: window.innerHeight
+            });
+        }
+
+        // Registra los clics en los botones de autenticación clave.
+        const trackedButtons = [
+            { id: 'desktop-login-btn', name: 'desktop_iniciar_sesion' },
+            { id: 'desktop-signup-btn', name: 'desktop_registrarse' },
+            { id: 'mobile-login-btn', name: 'mobile_entrar' },
+            { id: 'mobile-signup-btn', name: 'mobile_registrarse' },
+            { id: 'hero-signup-btn', name: 'hero_empieza_aventura' },
+            { id: 'signup-submit-btn', name: 'crear_cuenta' },
+            { id: 'login-submit-btn', name: 'entrar_form' }
+        ];
+        trackedButtons.forEach(({ id, name }) => {
+            const btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', () => trackEvent('button_clicks', { button_name: name }));
+        });
+
+        // Guarda / actualiza el perfil del usuario en la tabla "profiles".
+        // Funciona cuando ya existe sesión (RLS: auth.uid() = id).
+        const upsertProfile = async (user, extra = {}) => {
+            if (!user || !supabase) return;
+            const meta = user.user_metadata || {};
+            const profile = {
+                id: user.id,
+                full_name: extra.full_name ?? meta.full_name ?? null,
+                phone: extra.phone ?? meta.phone ?? null,
+                english_group: extra.english_group ?? meta.english_group ?? null,
+                nivel: meta.nivel || 'A1',
+                updated_at: new Date().toISOString()
+            };
+            const { error } = await supabase.from('profiles').upsert(profile, { onConflict: 'id' });
+            if (error) console.error('No se pudo guardar el perfil:', error.message);
+        };
+
+        if (supabase) {
+            // REGISTRO DE USUARIO
+            document.getElementById('signup-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('signup-name').value.trim();
+                const phone = document.getElementById('signup-phone').value.trim();
+                const group = document.getElementById('signup-group').value;
+                // Normalizamos el correo (minúsculas y sin espacios) para que
+                // "Juan@Correo.com" y "juan@correo.com" cuenten como el mismo.
+                const email = document.getElementById('signup-email').value.trim().toLowerCase();
+                const pin = document.getElementById('signup-pin').value.trim();
+                const msgEl = document.getElementById('signup-message');
+
+                const showError = (texto) => {
+                    msgEl.textContent = texto;
+                    msgEl.className = 'text-sm mt-4 text-center text-feedback-error';
+                };
+                const yaRegistrado = () => showError('Este correo ya está registrado. Inicia sesión con tu PIN.');
+
+                if (!isValidPin(pin)) {
+                    showError('El PIN debe tener exactamente 4 dígitos numéricos.');
+                    return;
+                }
+
+                const password = buildPassword(pin); // p.ej. 345299
+                msgEl.textContent = 'Creando cuenta...';
+                msgEl.className = 'text-sm mt-4 text-center text-slate-500';
+
+                // VERIFICACIÓN 1 (la más segura): preguntamos a la base de datos si el
+                // correo ya existe. Requiere la función SQL "email_ya_registrado"
+                // (ver instrucciones). Si la función no existe, seguimos con las demás
+                // verificaciones para no bloquear el registro.
+                try {
+                    const { data: existe, error: rpcError } = await supabase.rpc('email_ya_registrado', { correo: email });
+                    if (!rpcError && existe === true) {
+                        yaRegistrado();
+                        return;
+                    }
+                    if (rpcError) console.warn('No se pudo verificar el correo en la BD:', rpcError.message);
+                } catch (err) {
+                    console.warn('No se pudo verificar el correo en la BD:', err);
+                }
+
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: name,
+                            phone: phone,
+                            english_group: group,
+                            nivel: 'A1'
+                        }
+                    }
+                });
+
+                // VERIFICACIÓN 2: error explícito de Supabase.
+                if (error) {
+                    const m = (error.message || '').toLowerCase();
+                    const code = (error.code || '').toLowerCase();
+                    if (code === 'user_already_exists' || code === 'email_exists' ||
+                        m.includes('already registered') || m.includes('already been registered') ||
+                        m.includes('already exists') || m.includes('already in use')) {
+                        yaRegistrado();
+                    } else {
+                        showError(`Error: ${error.message}`);
+                    }
+                    return;
+                }
+
+                // VERIFICACIÓN 3: Supabase a veces responde sin error y con la lista
+                // "identities" vacía cuando el correo ya existe.
+                if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+                    yaRegistrado();
+                    return;
+                }
+
+                // VERIFICACIÓN 4 (clave): si el PIN coincide con el de una cuenta que ya
+                // existía, Supabase NO da error y simplemente inicia sesión en esa cuenta.
+                // Lo detectamos porque el usuario devuelto se creó hace mucho tiempo.
+                const usuarioDevuelto = data.user || (data.session && data.session.user);
+                if (usuarioDevuelto && usuarioDevuelto.created_at) {
+                    const antiguedadMs = Date.now() - new Date(usuarioDevuelto.created_at).getTime();
+                    if (antiguedadMs > 60000) { // más de 1 minuto => la cuenta ya existía
+                        await supabase.auth.signOut();
+                        yaRegistrado();
+                        return;
+                    }
+                }
+
+                // Ya no hay confirmación por correo: iniciamos sesión y entramos directo.
+                let session = data.session;
+                if (!session) {
+                    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    if (signInError) {
+                        showError('Cuenta creada, pero no se pudo entrar automáticamente. Inicia sesión manualmente.');
+                        return;
+                    }
+                    session = signInData.session;
+                }
+
+                if (session && session.user) {
+                    await upsertProfile(session.user, { full_name: name, phone, english_group: group });
+                }
+
+                msgEl.textContent = '¡Cuenta creada! Entrando...';
+                msgEl.className = 'text-sm mt-4 text-center text-feedback-success';
+                window.location.href = 'abulingo.html';
+            });
+
+            // INICIO DE SESIÓN
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value.trim().toLowerCase();
+                const pin = document.getElementById('login-pin').value.trim();
+                const errEl = document.getElementById('login-error');
+                errEl.textContent = '';
+
+                if (!isValidPin(pin)) {
+                    errEl.textContent = 'El PIN debe tener 4 dígitos numéricos.';
+                    return;
+                }
+
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: buildPassword(pin)
+                });
+
+                if (error) {
+                    errEl.textContent = "Correo o PIN incorrectos.";
+                    return;
+                }
+
+                // Aseguramos que el perfil exista/se actualice al entrar.
+                if (data.user) await upsertProfile(data.user);
+                window.location.href = 'abulingo.html';
+            });
+
+            // CERRAR SESIÓN
+            document.getElementById('logout-btn').addEventListener('click', async () => {
+                await supabase.auth.signOut();
+                // Al cerrar sesión, onAuthStateChange actualizará la UI.
+            });
+
+            // GESTIÓN DE UI
+            const updateUI = async (user) => {
+                const isLoggedIn = !!user;
+                if (mobileAuthButtons) mobileAuthButtons.classList.toggle('hidden', isLoggedIn);
+                if (mobileUserBadge) {
+                    mobileUserBadge.classList.toggle('hidden', !isLoggedIn);
+                    mobileUserBadge.classList.toggle('flex', isLoggedIn);
+                }
+                loggedOutNav.classList.toggle('hidden', isLoggedIn);
+                loggedInNav.classList.toggle('hidden', !isLoggedIn);
+                loggedInNav.classList.toggle('flex', isLoggedIn);
+
+                let mobileNavHTML = `
+                    <a href="#features" class="block text-slate-600 hover:text-[#0D47A1] font-semibold">Características</a>
+                    <a href="#ciencia" class="block text-slate-600 hover:text-[#0D47A1] font-semibold">Método</a>
+                    <a href="#pricing" class="block text-slate-600 hover:text-[#0D47A1] font-semibold">Planes</a>
+                    <a href="#faq" class="block text-slate-600 hover:text-[#0D47A1] font-semibold">FAQ</a>
+                    <hr class="border-slate-200"/>`;
+
+                if (isLoggedIn) {
+                    let displayName = user.email.split('@')[0]; // Nombre de respaldo
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profile && profile.full_name) {
+                        displayName = profile.full_name.split(' ')[0];
+                    }
+                    userNameSpan.textContent = `Hola, ${displayName}`;
+                    mobileNavHTML += `
+                        <p class="text-slate-700 text-center text-sm font-semibold">Hola, ${displayName}</p>
+                        <button id="mobile-logout-btn" class="w-full bg-red-100 text-[#D32F2F] font-bold py-2 rounded-lg text-sm">Salir</button>`;
+                } else {
+                    userNameSpan.textContent = '';
+                }
+                mobileMenu.innerHTML = mobileNavHTML;
+
+                if (isLoggedIn) document.getElementById('mobile-logout-btn').addEventListener('click', () => supabase.auth.signOut());
+                const topLogout = document.getElementById('mobile-logout-top');
+                if (topLogout && !topLogout.dataset.bound) {
+                    topLogout.dataset.bound = '1';
+                    topLogout.addEventListener('click', () => supabase.auth.signOut());
+                }
+                mobileMenu.querySelectorAll('.auth-btn-login').forEach(btn => btn.addEventListener('click', () => { openModal(loginModal); mobileMenu.classList.add('hidden'); }));
+                mobileMenu.querySelectorAll('.auth-btn-signup').forEach(btn => btn.addEventListener('click', () => { openModal(signupModal); mobileMenu.classList.add('hidden'); }));
+                mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileMenu.classList.add('hidden')));
+            };
+
+            // GESTIÓN DE ESTADO DE AUTENTICACIÓN Y REDIRECCIÓN
+
+            // 1. Escucha cambios de estado (login/logout) para actualizar la UI.
+            supabase.auth.onAuthStateChange((_, session) => {
+                updateUI(session?.user);
+            });
+
+            // 2. Al cargar la página, comprueba si ya existe una sesión.
+            (async () => {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    window.location.href = 'abulingo.html';
+                } else {
+                    updateUI(null);
+                }
+            })();
+        }
+
+        // OTRAS FUNCIONALIDADES
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('is-visible');
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+
+        menuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = mobileMenu.classList.toggle('hidden');
+            menuButton.setAttribute('aria-expanded', String(!isHidden));
+        });
+        document.addEventListener('click', (e) => {
+            if (!mobileMenu.contains(e.target) && !menuButton.contains(e.target)) {
+                mobileMenu.classList.add('hidden');
+                menuButton.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.querySelectorAll('.faq-question').forEach(item => {
+            item.addEventListener('click', () => {
+                const answer = item.nextElementSibling;
+                const icon = item.querySelector('.faq-icon');
+                const isOpen = answer.style.maxHeight;
+                document.querySelectorAll('.faq-answer').forEach(ans => { ans.style.maxHeight = null; });
+                document.querySelectorAll('.faq-icon').forEach(ic => ic.style.transform = 'rotate(0deg)');
+                if (!isOpen) {
+                    answer.style.maxHeight = answer.scrollHeight + "px";
+                    icon.style.transform = 'rotate(45deg)';
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
