@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Revisor de palabras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Public+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e1216; --panel:#171e25; --panel-2:#1f272f; --line:#2b353f;
+  --paper:#f3f0e8; --paper-2:#ded9cc;
+  --text:#c9d3dc; --dim:#7c8b99;
+  --signal:#ffb020; --verify:#3fd39a; --phon:#7cc4ff; --danger:#ff6b5e;
+  --r:6px; --bar:76px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  background:var(--ink);color:var(--text);
+  font-family:'Public Sans',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none;text-align:left}
+:focus-visible{outline:2px solid var(--phon);outline-offset:2px}
+
+#carga{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px}
+.dropzone{width:100%;max-width:520px;border:1px dashed var(--line);border-radius:var(--r);padding:48px 28px;text-align:center;background:var(--panel)}
+.dropzone.activo{border-color:var(--signal);background:var(--panel-2)}
+.dropzone h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;letter-spacing:-.02em;color:var(--paper);margin-bottom:8px}
+.dropzone p{color:var(--dim);margin-bottom:26px;font-size:14px}
+.dropzone .archivo{display:inline-block;border:1px solid var(--line);border-radius:var(--r);padding:14px 24px;background:var(--panel-2);color:var(--paper);font-weight:600}
+.dropzone small{display:block;margin-top:22px;color:var(--dim);font-size:12px;line-height:1.7}
+
+#app{display:none;height:100dvh;flex-direction:column;overflow:hidden}
+#app.visible{display:flex}
+
+header{display:flex;align-items:center;gap:10px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto}
+.modos{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;flex:0 0 auto}
+.modos button{padding:9px 14px;font-size:13px;font-weight:600;color:var(--dim);white-space:nowrap}
+.modos button.on{background:var(--paper);color:#12181d}
+.marcador{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);margin-left:auto;text-align:right;white-space:nowrap;line-height:1.35;overflow:hidden}
+.marcador b{display:block;font-size:14px;font-weight:500;color:var(--text)}
+.menu-btn{border:1px solid var(--line);border-radius:var(--r);padding:10px 13px;background:var(--panel-2);font-size:13px;flex:0 0 auto}
+
+.guardado{
+  display:block;width:100%;text-align:left;flex:0 0 auto;
+  font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1;
+  padding:7px 12px;background:var(--panel);border-bottom:1px solid var(--line);
+  color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.guardado.ok{color:var(--verify)}
+.guardado.trabajando{color:var(--phon)}
+.guardado.aviso{color:var(--signal)}
+.guardado.error{color:var(--danger)}
+
+#riel{display:block;width:100%;height:14px;background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto;cursor:crosshair}
+
+#lienzo{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 12px calc(var(--bar) + 20px);-webkit-overflow-scrolling:touch}
+.tarjeta{width:100%;max-width:540px;margin:0 auto;background:var(--paper);color:#12181d;border-radius:var(--r);overflow:hidden;box-shadow:0 18px 46px rgba(0,0,0,.45)}
+
+.meta{display:flex;gap:6px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--paper-2);font-family:'JetBrains Mono',monospace;font-size:11px;color:#5b6771}
+.etq{border:1px solid #c3bdb0;border-radius:2px;padding:1px 6px}
+.meta .id{margin-left:auto}
+
+.campo{display:block;width:100%;position:relative;background:transparent;border:0;border-bottom:1px solid var(--paper-2);padding:8px 56px 8px 16px;transition:background .12s;text-align:center}
+.campo .rotulo{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8375;margin-bottom:3px;display:block}
+.campo .valor{color:#12181d;word-break:break-word;display:block}
+.campo .valor.vacio{color:#c0392b;font-style:italic}
+.campo.solo-lectura{padding-right:16px;padding-bottom:4px;border-bottom:0}
+.ingles-txt{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:36px;letter-spacing:-.03em;line-height:1.05}
+.fonetica-txt{font-family:'JetBrains Mono',monospace;font-size:16px;color:#4a5560}
+.espanol-txt{font-size:20px;font-weight:600}
+
+.campo.marcado{background:#fff4dd;box-shadow:inset 4px 0 0 var(--signal)}
+.campo.marcado .rotulo{color:#9a6b00}
+
+.chip{position:absolute;top:50%;transform:translateY(-50%);right:9px;width:40px;height:40px;border-radius:50%;border:1px solid #c3bdb0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;color:#8a8375;background:#e9e4d8;padding:0}
+.marcado .chip{background:var(--signal);border-color:var(--signal);color:#12181d}
+
+.campo-img{padding:0;border-bottom:1px solid var(--paper-2);position:relative;display:block;width:100%;background:transparent;border-left:0;border-right:0;border-top:0}
+.marco{height:160px;background:#dcd7ca;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.marco img{width:100%;height:100%;object-fit:contain;display:block}
+.marco .sinimg{font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a8375;text-align:center;padding:18px;word-break:break-all}
+.campo-img .chip{top:10px;right:10px;transform:none;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.campo-img.marcado{box-shadow:inset 4px 0 0 var(--signal)}
+
+.campo-audio{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 56px 8px 12px;position:relative;border-bottom:1px solid var(--paper-2)}
+.play-btn{width:54px;height:54px;border-radius:50%;background:#12181d;color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto;padding:0}
+.play-btn:disabled{background:#c3bdb0;color:#8a8375}
+.play-btn.playing{background:var(--phon);color:#12181d}
+.audio-info{flex:1;min-width:0}
+.audio-info .rotulo{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8375}
+.audio-info .ruta{font-family:'JetBrains Mono',monospace;font-size:11px;color:#5b6771;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.campo-audio.marcado{background:#fff4dd;box-shadow:inset 4px 0 0 var(--signal)}
+
+.editor{padding:14px 16px;border-bottom:1px solid var(--paper-2);background:#fbf9f4}
+.editor .rotulo{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a6b00;margin-bottom:6px;display:block}
+.editor .antes{font-family:'JetBrains Mono',monospace;font-size:12px;color:#8a8375;margin-bottom:8px;word-break:break-all}
+.editor input{width:100%;background:#fff;border:1px solid #c3bdb0;border-radius:var(--r);padding:14px 12px;font-size:16px;color:#12181d}
+.editor input:focus{border-color:#12181d;outline:none}
+.editor .quitar{margin-top:10px;font-size:12px;color:#8a8375;text-decoration:underline;padding:4px 0}
+.aviso{padding:34px 22px;text-align:center;color:#5b6771}
+.aviso b{display:block;font-family:'Space Grotesk',sans-serif;font-size:19px;color:#12181d;margin-bottom:6px}
+
+.barra{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:8px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--ink) 62%,rgba(14,18,22,0))}
+.barra .nav{width:54px;height:54px;flex:0 0 auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);display:flex;align-items:center;justify-content:center;font-size:20px;padding:0}
+.barra .nav:disabled{opacity:.3}
+.principal{flex:1;height:54px;border-radius:var(--r);font-weight:700;font-size:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--verify);color:#0b1a14;border:1px solid var(--verify);padding:0 10px;overflow:hidden}
+.principal.pend{background:var(--signal);border-color:var(--signal);color:#12181d}
+.principal small{font-weight:500;font-size:11px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+dialog{border:0;padding:0;background:transparent;max-width:none;width:100%;max-height:100dvh;margin:auto auto 0}
+dialog::backdrop{background:rgba(0,0,0,.72)}
+.hoja{background:var(--panel);border-top:1px solid var(--line);border-radius:12px 12px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;max-height:88dvh;overflow-y:auto}
+.hoja h3{font-family:'Space Grotesk',sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:22px 0 10px}
+.hoja h3:first-child{margin-top:0}
+.hoja p{font-size:13px;color:var(--dim);margin-bottom:4px}
+.fila{display:flex;gap:8px;flex-wrap:wrap}
+.hoja label.et{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:12px 0 5px}
+.hoja input[type=text],.hoja input[type=search],.hoja select{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:12px;font-size:15px}
+.hoja input[type=text]{font-family:'JetBrains Mono',monospace;font-size:12px}
+.btn{border:1px solid var(--line);background:var(--panel-2);border-radius:var(--r);padding:13px 16px;font-size:14px;font-weight:500;flex:1;text-align:center;min-width:136px;display:block}
+.btn.destacado{background:var(--paper);color:#12181d;border-color:var(--paper);font-weight:700}
+.btn.riesgo{color:var(--danger);border-color:#4a2b2b}
+.hoja .cerrar{width:100%;margin-top:24px;padding:15px;border:1px solid var(--line);border-radius:var(--r);text-align:center;font-weight:600}
+.hoja .dato{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);margin-top:10px}
+
+.atajos{display:none}
+@media (min-width:860px){
+  .atajos{display:flex;gap:16px;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);padding:0 12px 10px;flex:0 0 auto}
+  .atajos kbd{border:1px solid var(--line);border-radius:2px;padding:1px 5px;background:var(--panel-2);color:var(--text)}
+  #lienzo{padding-bottom:calc(var(--bar) + 36px)}
+  .barra{max-width:660px;margin:0 auto;background:none}
+  .barra::before{content:"";position:fixed;left:0;right:0;bottom:0;height:104px;background:linear-gradient(to top,var(--ink) 58%,rgba(14,18,22,0));z-index:-1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="carga">
+  <div class="dropzone" id="dropzone">
+    <h1>Revisor de palabras</h1>
+    <p>Suelta tu <b>palabras.json</b> o selecciónalo. Nada sale de tu navegador.</p>
+    <label class="archivo">Elegir palabras.json<input type="file" id="entrada" accept=".json,application/json" hidden></label>
+    <small>
+      <b>Triaje:</b> tocas lo que está mal y avanzas.<br>
+      <b>Corregir:</b> solo aparecen esas palabras y escribes el arreglo.
+    </small>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="modos">
+      <button id="m-triaje" class="on">Triaje</button>
+      <button id="m-corregir">Corregir</button>
+    </div>
+    <span class="marcador"><b id="pos">0/0</b><span id="resumen">—</span></span>
+    <button class="menu-btn" id="btn-menu">Menú</button>
+  </header>
+
+  <button class="guardado" id="guardado">● sin archivo de avance</button>
+  <canvas id="riel"></canvas>
+  <div id="lienzo"><article class="tarjeta" id="tarjeta"></article></div>
+
+  <div class="atajos">
+    <span><kbd>←</kbd><kbd>→</kbd> mover</span>
+    <span><kbd>1</kbd> español <kbd>2</kbd> fonética <kbd>3</kbd> imagen <kbd>4</kbd> audio</span>
+    <span><kbd>espacio</kbd> oír</span>
+    <span><kbd>enter</kbd> confirmar y seguir</span>
+  </div>
+
+  <div class="barra">
+    <button class="nav" id="b-prev" aria-label="Anterior">←</button>
+    <button class="principal" id="b-principal"></button>
+    <button class="nav" id="b-next" aria-label="Siguiente">→</button>
+  </div>
+</div>
+
+<dialog id="menu">
+  <div class="hoja">
+    <h3>Filtrar</h3>
+    <input type="search" id="buscar" placeholder="Buscar en inglés o español">
+    <div class="fila" style="margin-top:8px">
+      <select id="f-nivel" style="flex:1"><option value="">Todos los niveles</option></select>
+      <select id="f-grupo" style="flex:1"><option value="">Todos los grupos</option></select>
+    </div>
+    <label class="et" id="lbl-estado">Ver (solo en triaje)</label>
+    <select id="f-estado">
+      <option value="todos">Todas</option>
+      <option value="pendiente">Sin revisar</option>
+      <option value="marcado">Marcadas</option>
+      <option value="ok">Aprobadas</option>
+    </select>
+
+    <h3>Rutas base</h3>
+    <p>Prefijo para ver archivos guardados con ruta relativa. Vacío si guardas URLs completas.</p>
+    <label class="et">Imágenes</label>
+    <input type="text" id="base-img" placeholder="https://…/storage/v1/object/public/imagenes/">
+    <label class="et">Audios</label>
+    <input type="text" id="base-aud" placeholder="https://…/storage/v1/object/public/audios/">
+    <div class="fila" style="margin-top:12px"><button class="btn destacado" id="g-rutas">Guardar rutas</button></div>
+
+    <h3 id="ancla-archivo">Archivo de avance</h3>
+    <p id="nota-fs">Elige un archivo una sola vez. A partir de ahí se reescribe solo cada vez que marcas o corriges algo.</p>
+    <div class="fila" style="margin-top:10px">
+      <button class="btn destacado" id="a-crear">Crear archivo</button>
+      <button class="btn" id="a-abrir">Abrir uno existente</button>
+    </div>
+    <div class="dato" id="dato-archivo"></div>
+
+    <h3>Exportar aparte</h3>
+    <div class="fila">
+      <button class="btn" id="e-triaje">Solo marcadas</button>
+      <button class="btn" id="e-final">Correcciones listas</button>
+    </div>
+    <div class="fila" style="margin-top:8px">
+      <label class="btn" style="cursor:pointer">Importar avance<input type="file" id="importar" accept=".json" hidden></label>
+      <button class="btn riesgo" id="reiniciar">Borrar avance</button>
+    </div>
+    <div class="dato" id="dato-avance"></div>
+
+    <button class="cerrar" id="cerrar-menu">Cerrar</button>
+  </div>
+</dialog>
+
+<audio id="reproductor" preload="none"></audio>
+
+<script>
+"use strict";
+
+const CAMPOS = ["espanol", "fonetica", "imagen", "audio"];
+const ROTULO = { espanol:"español", fonetica:"fonética", imagen:"imagen", audio:"audio" };
+const CLAVE_REV = "revisor:palabras:v2";
+const CLAVE_RUT = "revisor:rutas:v2";
+
+let datos = [], revision = {}, vista = [], cursor = 0;
+let modo = "triaje";
+let rutas = { img:"", aud:"" };
+let temporizador = null;
+let audioActual = null; // Para trackear qué audio se está reproduciendo
+
+const $ = (s) => document.querySelector(s);
+const esVacio = (v) => v === null || v === undefined || String(v).trim() === "";
+const escapar = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const almacen = {
+  async leer(k){
+    if(window.storage){ try{ const r = await window.storage.get(k); return r ? r.value : null; }catch(e){ return null; } }
+    try{ return localStorage.getItem(k); }catch(e){ return null; }
+  },
+  async escribir(k,v){
+    if(window.storage){ try{ await window.storage.set(k,v); return true; }catch(e){ return false; } }
+    try{ localStorage.setItem(k,v); return true; }catch(e){ return false; }
+  }
+};
+
+function urlDe(valor, base){
+  if(esVacio(valor)) return "";
+  const v = String(valor).trim();
+  if(/^(https?:)?\/\//i.test(v) || v.startsWith("data:")) return v;
+  return base ? base.replace(/\/+$/,"") + "/" + v.replace(/^\/+/,"") : v;
+}
+
+function reg(id){
+  if(!revision[id]) revision[id] = { revisado:false, flags:{}, fix:{} };
+  return revision[id];
+}
+function marcados(id){ const r = revision[id]; return r ? CAMPOS.filter(c => r.flags[c]) : []; }
+function estadoDe(f){
+  const r = revision[f.id];
+  if(!r) return "pendiente";
+  if(marcados(f.id).length) return "marcado";
+  return r.revisado ? "ok" : "pendiente";
+}
+function resuelta(f){
+  const r = revision[f.id]; if(!r) return false;
+  const m = marcados(f.id);
+  return m.length > 0 && m.every(c => !esVacio(r.fix[c]));
+}
+
+/* ---------- carga ---------- */
+$("#entrada").addEventListener("change", e => e.target.files[0] && leerArchivo(e.target.files[0], "datos"));
+const dz = $("#dropzone");
+["dragenter","dragover"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add("activo"); }));
+["dragleave","drop"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove("activo"); }));
+dz.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if(f) leerArchivo(f, "datos"); });
+
+function leerArchivo(archivo, tipo){
+  const lector = new FileReader();
+  lector.onload = async () => {
+    let json;
+    try{ json = JSON.parse(lector.result); }
+    catch(err){ alert("Ese archivo no es JSON válido: " + err.message); return; }
+    if(!Array.isArray(json)){ alert("El JSON debe ser una lista de registros."); return; }
+    if(tipo === "datos"){
+      datos = json.map((f,i) => f.id === undefined ? {...f, id:"sin-id-"+i} : f);
+      await iniciar();
+    } else {
+      importarAvance(json);
+    }
+  };
+  lector.onerror = () => alert("No se pudo leer el archivo.");
+  lector.readAsText(archivo, "utf-8");
+}
+
+async function iniciar(){
+  const g = await almacen.leer(CLAVE_REV);
+  if(g){ try{ revision = JSON.parse(g); }catch(e){ revision = {}; } }
+  const r = await almacen.leer(CLAVE_RUT);
+  if(r){ try{ rutas = JSON.parse(r); }catch(e){} }
+  $("#base-img").value = rutas.img || "";
+  $("#base-aud").value = rutas.aud || "";
+
+  llenar("#f-nivel","nivel");
+  llenar("#f-grupo","grupo");
+  $("#carga").style.display = "none";
+  $("#app").classList.add("visible");
+
+  aplicarFiltros();
+  const p = vista.findIndex(i => estadoDe(datos[i]) === "pendiente");
+  cursor = p >= 0 ? p : 0;
+  pintar();
+  estadoGuardado("local");
+  window.addEventListener("resize", dibujarRiel);
+  
+  // Eventos del reproductor de audio
+  const reproductor = $("#reproductor");
+  reproductor.addEventListener("ended", () => {
+    actualizarBotonPlay(false);
+    audioActual = null;
+  });
+  reproductor.addEventListener("pause", () => {
+    actualizarBotonPlay(false);
+    audioActual = null;
+  });
+  reproductor.addEventListener("play", () => {
+    actualizarBotonPlay(true);
+  });
+  reproductor.addEventListener("error", () => {
+    actualizarBotonPlay(false);
+    audioActual = null;
+    console.warn("Error al cargar el audio");
+  });
+}
+
+function llenar(sel, campo){
+  const vals = [...new Set(datos.map(f => f[campo]).filter(v => !esVacio(v)))].sort();
+  const el = $(sel);
+  vals.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v; el.appendChild(o); });
+}
+
+/* ---------- modos ---------- */
+$("#m-triaje").addEventListener("click", () => cambiarModo("triaje"));
+$("#m-corregir").addEventListener("click", () => cambiarModo("corregir"));
+
+function cambiarModo(nuevo){
+  modo = nuevo;
+  $("#m-triaje").classList.toggle("on", modo === "triaje");
+  $("#m-corregir").classList.toggle("on", modo === "corregir");
+  $("#f-estado").disabled = modo === "corregir";
+  $("#lbl-estado").style.opacity = modo === "corregir" ? ".4" : "1";
+  aplicarFiltros();
+  cursor = 0;
+  $("#lienzo").scrollTop = 0;
+  pintar();
+}
+
+/* ---------- filtros ---------- */
+function aplicarFiltros(){
+  const est = $("#f-estado").value, niv = $("#f-nivel").value, gru = $("#f-grupo").value;
+  const q = $("#buscar").value.trim().toLowerCase();
+  vista = [];
+  datos.forEach((f,i) => {
+    if(niv && String(f.nivel) !== niv) return;
+    if(gru && String(f.grupo) !== gru) return;
+    if(modo === "corregir"){
+      if(!marcados(f.id).length) return;
+    } else if(est !== "todos" && estadoDe(f) !== est) return;
+    if(q){
+      const t = (String(f.ingles||"") + " " + String(f.espanol||"")).toLowerCase();
+      if(!t.includes(q)) return;
+    }
+    vista.push(i);
+  });
+  if(cursor >= vista.length) cursor = Math.max(0, vista.length - 1);
+}
+["#f-estado","#f-nivel","#f-grupo"].forEach(s => $(s).addEventListener("change", () => { aplicarFiltros(); cursor = 0; pintar(); }));
+$("#buscar").addEventListener("input", () => { aplicarFiltros(); cursor = 0; pintar(); });
+
+/* ---------- render ---------- */
+const actual = () => vista.length ? datos[vista[cursor]] : null;
+
+function pintar(){
+  const f = actual(), cont = $("#tarjeta");
+  // Detener audio al cambiar de palabra
+  $("#reproductor").pause();
+  audioActual = null;
+  
+  if(!f){
+    cont.innerHTML = modo === "corregir"
+      ? '<div class="aviso"><b>Nada marcado todavía</b>Pasa por Triaje y toca lo que esté mal. Aquí aparecerán solo esas palabras.</div>'
+      : '<div class="aviso"><b>Sin resultados</b>Ningún registro coincide con los filtros.</div>';
+    barra(); marcadorTexto(); dibujarRiel(); return;
+  }
+  cont.innerHTML = modo === "triaje" ? vistaTriaje(f) : vistaCorregir(f);
+  conectarTarjeta(f);
+  barra(); marcadorTexto(); dibujarRiel();
+}
+
+function vistaTriaje(f){
+  const r = reg(f.id);
+  const img = urlDe(f.imagen, rutas.img);
+  const aud = urlDe(f.audio, rutas.aud);
+  const on = c => r.flags[c] ? " marcado" : "";
+  const chip = c => `<span class="chip">${r.flags[c] ? "!" : "+"}</span>`;
+  const val = (v, clase) => esVacio(v)
+    ? '<span class="valor vacio">— vacío —</span>'
+    : `<span class="valor ${clase}">${escapar(v)}</span>`;
+
+  return `
+  <div class="meta">
+    <span class="etq">${escapar(f.nivel || "?")}</span>
+    <span class="etq">${escapar(f.grupo || "?")}</span>
+    <span class="id">id ${escapar(f.id)}</span>
+  </div>
+
+  <button class="campo-img${on("imagen")}" data-toggle="imagen" aria-label="Marcar imagen">
+    <div class="marco">${img
+      ? `<img src="${escapar(img)}" alt="${escapar(f.ingles||"")}" onerror="this.parentNode.innerHTML='<div class=&quot;sinimg&quot;>No carga</div>'">`
+      : '<div class="sinimg">Sin imagen</div>'}</div>
+    ${chip("imagen")}
+  </button>
+
+  <div class="campo solo-lectura">
+    <span class="rotulo">Inglés</span>
+    ${val(f.ingles, "ingles-txt")}
+  </div>
+
+  <button class="campo${on("fonetica")}" data-toggle="fonetica" aria-label="Marcar fonética">
+    <span class="rotulo">Fonética</span>
+    ${val(f.fonetica, "fonetica-txt")}
+    ${chip("fonetica")}
+  </button>
+
+  <button class="campo${on("espanol")}" data-toggle="espanol" aria-label="Marcar español">
+    <span class="rotulo">Español</span>
+    ${val(f.espanol, "espanol-txt")}
+    ${chip("espanol")}
+  </button>
+
+  <div class="campo-audio${on("audio")}">
+    <button class="play-btn" data-play ${aud ? "" : "disabled"} aria-label="Reproducir audio">&#9654;</button>
+    <button class="chip" data-toggle="audio" aria-label="Marcar audio">${r.flags.audio ? "!" : "+"}</button>
+  </div>`;
+}
+
+function vistaCorregir(f){
+  const r = reg(f.id);
+  const m = marcados(f.id);
+  const img = urlDe(r.fix.imagen || f.imagen, rutas.img);
+  const aud = urlDe(r.fix.audio || f.audio, rutas.aud);
+
+  const bloques = m.map(c => {
+    const previo = esVacio(f[c]) ? "(vacío)" : String(f[c]);
+    const ph = c === "imagen" ? "img/B2/G1/palabra.png"
+             : c === "audio" ? "audios_palabras/B2/G1/palabra.mp3"
+             : c === "fonetica" ? "/ˈkɒrɪkt/" : "traducción correcta";
+    return `
+    <div class="editor">
+      <span class="rotulo">${ROTULO[c]} — nuevo valor</span>
+      <div class="antes">antes: ${escapar(previo)}</div>
+      <input type="text" data-fix="${c}" value="${escapar(r.fix[c] || "")}"
+             placeholder="${escapar(ph)}" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="quitar" data-quitar="${c}">Ya estaba bien, quitar marca</button>
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="meta">
+    <span class="etq">${escapar(f.nivel || "?")}</span>
+    <span class="etq">${escapar(f.grupo || "?")}</span>
+    <span class="id">id ${escapar(f.id)}</span>
+  </div>
+  ${m.includes("imagen") ? `<div class="campo-img"><div class="marco">${img
+      ? `<img src="${escapar(img)}" alt="" onerror="this.parentNode.innerHTML='<div class=&quot;sinimg&quot;>No carga</div>'">`
+      : '<div class="sinimg">Sin imagen</div>'}</div></div>` : ""}
+  <div class="campo solo-lectura">
+    <span class="rotulo">Inglés</span>
+    <span class="valor ingles-txt">${escapar(f.ingles || "")}</span>
+  </div>
+  ${m.includes("audio") ? `<div class="campo-audio">
+      <button class="play-btn" data-play ${aud ? "" : "disabled"} aria-label="Reproducir audio">&#9654;</button>
+    </div>` : ""}
+  ${bloques}`;
+}
+
+function conectarTarjeta(f){
+  document.querySelectorAll("[data-toggle]").forEach(el =>
+    el.addEventListener("click", e => { e.stopPropagation(); alternar(el.dataset.toggle); }));
+
+  document.querySelectorAll("[data-fix]").forEach(inp =>
+    inp.addEventListener("input", () => { reg(f.id).fix[inp.dataset.fix] = inp.value; guardar(); barra(); dibujarRiel(); }));
+
+  document.querySelectorAll("[data-quitar]").forEach(b =>
+    b.addEventListener("click", () => {
+      const c = b.dataset.quitar, r = reg(f.id);
+      r.flags[c] = false;
+      delete r.fix[c];
+      guardar();
+      if(!marcados(f.id).length){
+        aplicarFiltros();
+        if(cursor >= vista.length) cursor = Math.max(0, vista.length - 1);
+      }
+      pintar();
+    }));
+
+  // Conectar botón de reproducción
+  const playBtn = document.querySelector("[data-play]");
+  if(playBtn) playBtn.addEventListener("click", e => { e.stopPropagation(); reproducir(f); });
+}
+
+function reproducir(f){
+  const r = reg(f.id);
+  const src = urlDe((modo === "corregir" && r.fix.audio) || f.audio, rutas.aud);
+  if(!src) return;
+  
+  const a = $("#reproductor");
+  
+  // Si ya está reproduciendo este audio, pausar
+  if(audioActual === src && !a.paused) {
+    a.pause();
+    return;
+  }
+  
+  // Cargar y reproducir nuevo audio
+  if(a.src !== src) {
+    a.src = src;
+  }
+  
+  audioActual = src;
+  a.currentTime = 0;
+  a.play().catch(err => {
+    console.warn("Error al reproducir audio:", err);
+    actualizarBotonPlay(false);
+    audioActual = null;
+  });
+}
+
+function actualizarBotonPlay(playing) {
+  const btn = document.querySelector("[data-play]");
+  if(btn) {
+    if(playing) {
+      btn.innerHTML = "&#10073;&#10073;";
+      btn.classList.add("playing");
+    } else {
+      btn.innerHTML = "&#9654;";
+      btn.classList.remove("playing");
+    }
+  }
+}
+
+function alternar(campo){
+  const f = actual(); if(!f) return;
+  const r = reg(f.id);
+  r.flags[campo] = !r.flags[campo];
+  if(r.flags[campo]) r.revisado = true;
+  else delete r.fix[campo];
+  guardar();
+
+  const nodo = document.querySelector(`[data-toggle="${campo}"]`);
+  if(nodo){
+    const caja = nodo.classList.contains("chip") ? nodo.closest(".campo-audio") : nodo;
+    caja.classList.toggle("marcado", !!r.flags[campo]);
+    const chip = caja.querySelector(".chip");
+    if(chip) chip.textContent = r.flags[campo] ? "!" : "+";
+  }
+  barra(); marcadorTexto(); dibujarRiel();
+}
+
+/* ---------- barra ---------- */
+function barra(){
+  const f = actual(), b = $("#b-principal");
+  $("#b-prev").disabled = cursor <= 0;
+  $("#b-next").disabled = cursor >= vista.length - 1;
+  if(!f){ b.innerHTML = ""; b.style.visibility = "hidden"; return; }
+  b.style.visibility = "visible";
+
+  if(modo === "triaje"){
+    const m = marcados(f.id);
+    b.classList.toggle("pend", m.length > 0);
+    b.innerHTML = m.length
+      ? `<span>Marcar y seguir</span><small>${m.map(c => ROTULO[c]).join(", ")}</small>`
+      : "<span>Está bien &rarr;</span>";
+  } else {
+    const faltan = marcados(f.id).filter(c => esVacio(reg(f.id).fix[c]));
+    b.classList.toggle("pend", faltan.length > 0);
+    b.innerHTML = faltan.length
+      ? `<span>Falta llenar</span><small>${faltan.map(c => ROTULO[c]).join(", ")}</small>`
+      : "<span>Corregida &rarr;</span>";
+  }
+}
+
+$("#b-principal").addEventListener("click", () => {
+  const f = actual(); if(!f) return;
+  if(modo === "triaje") { reg(f.id).revisado = true; guardar(); }
+  mover(1);
+});
+$("#b-prev").addEventListener("click", () => mover(-1));
+$("#b-next").addEventListener("click", () => mover(1));
+
+function mover(paso){
+  if(!vista.length) return;
+  const idActual = actual() ? actual().id : null;
+  if($("#f-estado").value !== "todos" && modo === "triaje"){
+    aplicarFiltros();
+    const pos = vista.findIndex(i => datos[i].id === idActual);
+    if(pos >= 0) cursor = pos;
+    else { cursor = Math.min(cursor, Math.max(0, vista.length - 1)); pintar(); return; }
+  }
+  cursor = Math.max(0, Math.min(vista.length - 1, cursor + paso));
+  $("#lienzo").scrollTop = 0;
+  $("#reproductor").pause();
+  audioActual = null;
+  pintar();
+}
+
+/* ---------- deslizar ---------- */
+let x0 = null, y0 = null;
+$("#lienzo").addEventListener("touchstart", e => {
+  if(e.touches.length !== 1) return;
+  x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+}, { passive:true });
+$("#lienzo").addEventListener("touchend", e => {
+  if(x0 === null) return;
+  if(/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)){ x0 = null; return; }
+  const dx = e.changedTouches[0].clientX - x0;
+  const dy = e.changedTouches[0].clientY - y0;
+  if(Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) mover(dx < 0 ? 1 : -1);
+  x0 = y0 = null;
+}, { passive:true });
+
+/* ---------- teclado ---------- */
+document.addEventListener("keydown", e => {
+  if(!$("#app").classList.contains("visible")) return;
+  if($("#menu").open) return;
+  const enTexto = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+  if(enTexto){
+    if(e.key === "Escape") e.target.blur();
+    else if(e.key === "Enter"){ e.preventDefault(); e.target.blur(); $("#b-principal").click(); }
+    return;
+  }
+  if(e.key === "ArrowRight"){ e.preventDefault(); mover(1); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); mover(-1); }
+  else if(e.key === "Enter"){ e.preventDefault(); $("#b-principal").click(); }
+  else if(e.key === " "){ e.preventDefault(); const f = actual(); if(f) reproducir(f); }
+  else if(["1","2","3","4"].includes(e.key) && modo === "triaje"){ e.preventDefault(); alternar(CAMPOS[+e.key - 1]); }
+});
+
+/* ---------- riel ---------- */
+function dibujarRiel(){
+  const c = $("#riel"), dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = 14;
+  c.width = w * dpr; c.height = h * dpr;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  const n = vista.length; if(!n) return;
+  const paso = w / n, ancho = Math.max(paso, 1);
+
+  vista.forEach((idx,i) => {
+    const f = datos[idx];
+    let color;
+    if(modo === "corregir") color = resuelta(f) ? "#3fd39a" : "#ffb020";
+    else {
+      const e = estadoDe(f);
+      color = e === "ok" ? "#3fd39a" : e === "marcado" ? "#ffb020" : "#2b353f";
+    }
+    ctx.fillStyle = color;
+    ctx.fillRect(i * paso, 3, ancho, 8);
+  });
+  ctx.fillStyle = "#f3f0e8";
+  ctx.fillRect(Math.min(cursor * paso, w - 2), 0, 2, h);
+}
+$("#riel").addEventListener("click", e => {
+  if(!vista.length) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  cursor = Math.min(vista.length - 1, Math.max(0, Math.floor(((e.clientX - rect.left)/rect.width) * vista.length)));
+  $("#lienzo").scrollTop = 0;
+  pintar();
+});
+
+/* ---------- marcador ---------- */
+function marcadorTexto(){
+  $("#pos").textContent = (vista.length ? cursor + 1 : 0) + "/" + vista.length;
+  let ok = 0, marc = 0;
+  datos.forEach(f => { const e = estadoDe(f); if(e === "ok") ok++; else if(e === "marcado") marc++; });
+  $("#resumen").textContent = modo === "triaje"
+    ? `${marc} marcadas · ${datos.length - ok - marc} sin ver`
+    : `${vista.filter(i => resuelta(datos[i])).length} de ${vista.length} listas`;
+  $("#dato-avance").textContent = `${datos.length} palabras · ${ok} aprobadas · ${marc} marcadas`;
+}
+
+/* ---------- guardado continuo ---------- */
+const soportaFS = typeof window.showSaveFilePicker === "function";
+let manejador = null, nombreArchivo = "", escribiendo = false, encolado = false;
+let sinRespaldo = 0;
+
+function construirEstado(){
+  const salida = [];
+  datos.forEach(f => {
+    const r = revision[f.id];
+    if(!r) return;
+    const m = marcados(f.id);
+    if(!r.revisado && !m.length) return;
+    const item = {
+      id: f.id, ingles: f.ingles, nivel: f.nivel, grupo: f.grupo,
+      estado: m.length ? "marcado" : "ok",
+      campos: m
+    };
+    m.forEach(c => { item[c + "_actual"] = f[c] ?? ""; item[c + "_nuevo"] = r.fix[c] || ""; });
+    salida.push(item);
+  });
+  return salida;
+}
+
+function guardar(){
+  sinRespaldo++;
+  estadoGuardado("trabajando");
+  clearTimeout(temporizador);
+  temporizador = setTimeout(async () => {
+    await almacen.escribir(CLAVE_REV, JSON.stringify(revision));
+    await escribirArchivo();
+  }, 500);
+}
+
+async function escribirArchivo(){
+  if(!manejador){ estadoGuardado("local"); return; }
+  if(escribiendo){ encolado = true; return; }
+  escribiendo = true;
+  try{
+    const w = await manejador.createWritable();
+    await w.write(JSON.stringify(construirEstado(), null, 2));
+    await w.close();
+    sinRespaldo = 0;
+    estadoGuardado("ok");
+  }catch(e){
+    estadoGuardado("error", e.message);
+  }finally{
+    escribiendo = false;
+    if(encolado){ encolado = false; escribirArchivo(); }
+  }
+}
+
+function estadoGuardado(tipo, extra){
+  const el = $("#guardado");
+  if (!el) return;
+  const hora = new Date().toLocaleTimeString("es-CO", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+  if(tipo === "trabajando" && manejador){ el.className = "guardado trabajando"; el.textContent = "● guardando…"; }
+  else if(tipo === "ok"){ el.className = "guardado ok"; el.textContent = `● guardado en ${nombreArchivo} · ${hora}`; }
+  else if(tipo === "error"){ el.className = "guardado error"; el.textContent = "● no se pudo escribir el archivo — " + (extra || "toca para reconectar"); }
+  else{
+    el.className = "guardado" + (sinRespaldo >= 30 ? " aviso" : "");
+    el.textContent = sinRespaldo
+      ? `● ${sinRespaldo} cambios solo en el navegador — toca para conectar un archivo`
+      : "● sin archivo de avance — toca para conectar uno";
+  }
+  const dato = $("#dato-archivo");
+  if(dato) dato.textContent = manejador
+    ? `Escribiendo en ${nombreArchivo}. Se reescribe entero en cada cambio.`
+    : "Todavía no hay archivo conectado.";
+}
+
+async function crearArchivo(){
+  if(!soportaFS) return;
+  try{
+    manejador = await window.showSaveFilePicker({
+      suggestedName: "revision_avance.json",
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    nombreArchivo = manejador.name;
+    $("#menu").close();
+    await escribirArchivo();
+  }catch(e){}
+}
+
+async function abrirArchivo(){
+  if(!soportaFS) return;
+  try{
+    const [h] = await window.showOpenFilePicker({
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    const permiso = await h.requestPermission({ mode: "readwrite" });
+    if(permiso !== "granted"){ alert("Sin permiso de escritura sobre ese archivo."); return; }
+    const texto = await (await h.getFile()).text();
+    let lista = [];
+    if(texto.trim()){
+      lista = JSON.parse(texto);
+      if(!Array.isArray(lista)) throw new Error("El archivo no contiene una lista.");
+    }
+    manejador = h;
+    nombreArchivo = h.name;
+    importarAvance(lista);
+    await escribirArchivo();
+  }catch(e){
+    if(e && e.name !== "AbortError") alert("No se pudo abrir: " + e.message);
+  }
+}
+
+$("#guardado").addEventListener("click", () => {
+  $("#menu").showModal();
+  $("#ancla-archivo").scrollIntoView({ block:"start" });
+});
+$("#a-crear").addEventListener("click", crearArchivo);
+$("#a-abrir").addEventListener("click", abrirArchivo);
+
+if(!soportaFS){
+  $("#nota-fs").textContent = "Tu navegador no deja escribir directo en un archivo (pasa en iPhone, Safari y Firefox). El avance se guarda en el navegador; usa Exportar de vez en cuando para tener respaldo.";
+  $("#a-crear").disabled = true;
+  $("#a-abrir").disabled = true;
+  $("#a-crear").style.opacity = ".4";
+  $("#a-abrir").style.opacity = ".4";
+}
+
+/* ---------- menu ---------- */
+$("#btn-menu").addEventListener("click", () => $("#menu").showModal());
+$("#cerrar-menu").addEventListener("click", () => $("#menu").close());
+$("#menu").addEventListener("click", e => { if(e.target.id === "menu") $("#menu").close(); });
+$("#g-rutas").addEventListener("click", async () => {
+  rutas = { img:$("#base-img").value.trim(), aud:$("#base-aud").value.trim() };
+  await almacen.escribir(CLAVE_RUT, JSON.stringify(rutas));
+  $("#menu").close();
+  pintar();
+});
+$("#reiniciar").addEventListener("click", async () => {
+  if(!confirm("Se borra todo el avance de revisión. ¿Seguro?")) return;
+  revision = {};
+  await almacen.escribir(CLAVE_REV, "{}");
+  aplicarFiltros(); cursor = 0; pintar(); $("#menu").close();
+});
+
+/* ---------- exportar / importar ---------- */
+function construirSalida(soloResueltas){
+  const salida = [];
+  datos.forEach(f => {
+    const m = marcados(f.id); if(!m.length) return;
+    if(soloResueltas && !resuelta(f)) return;
+    const r = revision[f.id];
+    const item = { id:f.id, ingles:f.ingles, nivel:f.nivel, grupo:f.grupo, campos:m };
+    m.forEach(c => { item[c + "_actual"] = f[c] ?? ""; item[c + "_nuevo"] = r.fix[c] || ""; });
+    salida.push(item);
+  });
+  return salida;
+}
+$("#e-triaje").addEventListener("click", () => {
+  const s = construirSalida(false);
+  descargar("marcadas.json", JSON.stringify(s, null, 2));
+  alert(`${s.length} palabras marcadas exportadas.`);
+});
+$("#e-final").addEventListener("click", () => {
+  const s = construirSalida(true);
+  descargar("correcciones.json", JSON.stringify(s, null, 2));
+  alert(`${s.length} palabras con corrección lista exportadas.`);
+});
+$("#importar").addEventListener("change", e => e.target.files[0] && leerArchivo(e.target.files[0], "avance"));
+
+function importarAvance(lista){
+  let n = 0;
+  lista.forEach(item => {
+    if(item.id === undefined) return;
+    const r = reg(item.id);
+    r.revisado = true;
+    (item.campos || []).forEach(c => {
+      if(!CAMPOS.includes(c)) return;
+      r.flags[c] = true;
+      const nuevo = item[c + "_nuevo"];
+      if(!esVacio(nuevo)) r.fix[c] = nuevo;
+    });
+    n++;
+  });
+  guardar(); aplicarFiltros(); cursor = 0; pintar(); $("#menu").close();
+  alert(`${n} palabras importadas al avance.`);
+}
+
+window.addEventListener("beforeunload", e => {
+  if(!manejador && sinRespaldo > 0){ e.preventDefault(); e.returnValue = ""; }
+});
+
+function descargar(nombre, texto){
+  const blob = new Blob([texto], { type:"application/json;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+</script>
+</body>
+</html>
